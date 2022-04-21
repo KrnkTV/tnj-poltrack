@@ -92,6 +92,7 @@ RegisterNUICallback('GPSON', function(data, cb)
     if not onGPS then
         onGPS = true
         GpsToggle(true)
+			QBCore.Functions.Notify('Your GPS has been activated.')
     else
         TriggerEvent("QBCore:Notify", "GPS is already on", 'error')
     end
@@ -101,6 +102,7 @@ RegisterNUICallback('GPSOFF', function(data, cb)
     if onGPS then
         onGPS = false
         GpsToggle(false)
+			QBCore.Functions.Notify('Your GPS has been deactivated.')
     else
         TriggerEvent("QBCore:Notify", "GPS Isnt on yet", 'error')
     end
@@ -115,6 +117,7 @@ CreateThread(function()
                 if not hasItem then
                     onGPS = false
                     GpsToggle(false)
+							QBCore.Functions.Notify('Your GPS has been deactivated.')
                 end
             end, "gps")
         end
