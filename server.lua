@@ -12,10 +12,6 @@ RegisterNetEvent('tnj-poltrack:server:ToggleGPS', function()
     end
 end)
 
-RegisterCommand('test', function(source)
-    TriggerClientEvent('tnj-poltrack:use', source)
-end)
-
 QBCore.Functions.CreateCallback('tnj-poltrack:server:GetItem', function(source, cb, item)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
