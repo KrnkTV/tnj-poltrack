@@ -26,7 +26,13 @@ end
 
 local function GpsToggle(toggle)
     onGPS = toggle
-    TriggerServerEvent("tnj-poltrack:server:ToggleGPS")
+    CreateThread(function()
+        while onGPS do
+            Wait(5000)
+            UpdateBlips()
+        end
+    end)
+    -- TriggerServerEvent("tnj-poltrack:server:ToggleGPS")
 end
 
 local function toggleGpsAnimation(pState)
@@ -115,37 +121,73 @@ CreateThread(function()
     end
 end)
 
-RegisterNetEvent('tnj-poltrack:client:addBlip', function(id, pinfo)
-	if isPolice() then
-		local id = GetPlayerFromServerId(id)
-		local pedUser = GetPlayerPed(id)
-		local blip = GetBlipFromEntity(pedUser)
+-- RegisterNetEvent('tnj-poltrack:client:addBlip', function(id, pinfo)
+-- 	if isPolice() then
+-- 		local id = GetPlayerFromServerId(id)
+-- 		local pedUser = GetPlayerPed(id)
+-- 		local blip = GetBlipFromEntity(pedUser)
 
-		if not DoesBlipExist(blip) then
-			local blipPoli = AddBlipForEntity(pedUser)
+-- 		if not DoesBlipExist(blip) then
+-- 			CreateDutyBlips(id, pinfo, 'police', playerLocation)
 
-			SetBlipSprite(blipPoli, 1)
-            ShowHeadingIndicatorOnBlip(blipPoli, true)
-			SetBlipAsShortRange(blipPoli, false)
-			SetBlipColour(blipPoli, 1)
-			SetBlipScale(blipPoli, 1.1)
-            BeginTextCommandSetBlipName("STRING")
-            AddTextComponentSubstringPlayerName(pinfo)
-            EndTextCommandSetBlipName(blipPoli)
-			-- SetBlipNameToPlayerName(blipPoli, id)
+-- 			if pedUser == PlayerPedId() then
+-- 				QBCore.Functions.Notify('Your GPS has been activated.')
+-- 			else
+-- 				QBCore.Functions.Notify('A police has activated a GPS.')
+-- 			end
+-- 		else
+-- 			RemoveBlip(blip)
+-- 			if pedUser == PlayerPedId() then
+-- 				QBCore.Functions.Notify('Your GPS has been deactivated.')
+-- 			else
+--                 QBCore.Functions.Notify('A police has deactivated a GPS.')
+-- 			end
+-- 		end
+-- 	end
+-- end)
 
-			if pedUser == PlayerPedId() then
-				QBCore.Functions.Notify('Your GPS has been activated.')
-			else
-				QBCore.Functions.Notify('A police has activated a GPS.')
-			end
-		else
-			RemoveBlip(blip)
-			if pedUser == PlayerPedId() then
-				QBCore.Functions.Notify('Your GPS has been deactivated.')
-			else
-                QBCore.Functions.Notify('A police has deactivated a GPS.')
-			end
-		end
-	end
+local function CreateDutyBlips(playerId, playerLabel, playerLocation)
+    local ped = GetPlayerPed(playerId)
+    local blip = GetBlipFromEntity(ped)
+    if not DoesBlipExist(blip) then
+        if NetworkIsPlayerActive(playerId) then
+            blip = AddBlipForEntity(ped)
+        else
+            blip = AddBlipForCoord(playerLocation.x, playerLocation.y, playerLocation.z)
+        end
+        SetBlipSprite(blip, 1)
+        ShowHeadingIndicatorOnBlip(blip, true)
+        SetBlipRotation(blip, math.ceil(playerLocation.w))
+        SetBlipScale(blip, 1.0)
+        SetBlipColour(blip, 38)
+        SetBlipAsShortRange(blip, true)
+        SetBlipCategory(blip, 7)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentString(playerLabel)
+        EndTextCommandSetBlipName(blip)
+        DutyBlips[#DutyBlips+1] = blip
+    end
+
+    if GetBlipFromEntity(PlayerPedId()) == blip then
+        -- Ensure we remove our own blip.
+        RemoveBlip(blip)
+    end
+end
+
+RegisterNetEvent('tnj-poltrack:client:UpdateBlips', function(players)
+    local player = QBCore.Functions.GetPlayerData()
+    if PlayerJob and (PlayerJob.name == 'police') and player.job.onduty then
+        if DutyBlips then
+            for k, v in pairs(DutyBlips) do
+                RemoveBlip(v)
+            end
+        end
+        DutyBlips = {}
+        if players then
+            for k, data in pairs(players) do
+                local id = GetPlayerFromServerId(data.source)
+                CreateDutyBlips(id, data.label, data.location)
+            end
+        end
+    end
 end)
